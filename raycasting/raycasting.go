@@ -1,9 +1,10 @@
 package raycasting
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
 	"math"
 	"sort"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Line struct {
