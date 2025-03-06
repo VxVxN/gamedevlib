@@ -2,7 +2,6 @@ package audioplayer
 
 import (
 	"fmt"
-	"log"
 	"math/rand/v2"
 	"os"
 	"path"
@@ -19,10 +18,9 @@ type AudioPlayer struct {
 	allMusicFiles    []*os.File
 	currentSongIndex int
 	volume           float64
-	logger           *log.Logger
 }
 
-func NewAudioPlayer(audioContext *audio.Context, dirName string, logger *log.Logger) (*AudioPlayer, error) {
+func NewAudioPlayer(audioContext *audio.Context, dirName string) (*AudioPlayer, error) {
 	files, err := os.ReadDir(dirName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read music directory: %v", err)
@@ -41,7 +39,6 @@ func NewAudioPlayer(audioContext *audio.Context, dirName string, logger *log.Log
 	audioPlayer := &AudioPlayer{
 		audioContext:  audioContext,
 		allMusicFiles: allMusicFiles,
-		logger:        logger,
 	}
 
 	return audioPlayer, nil
@@ -85,7 +82,6 @@ func (audioPlayer *AudioPlayer) play() error {
 			return fmt.Errorf("failed to close audio player: %v", err)
 		}
 	}
-	audioPlayer.logger.Printf("[INFO] Playing music file %s\n", file.Name())
 	player, err := audioPlayer.audioContext.NewPlayerF32(mp3Stream)
 	if err != nil {
 		return fmt.Errorf("failed to create player: %v", err)
