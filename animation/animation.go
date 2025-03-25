@@ -2,7 +2,6 @@ package animation
 
 import (
 	"fmt"
-	"image"
 	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -11,33 +10,22 @@ import (
 )
 
 type Animation struct {
-	x, y           float64
-	scaleX, scaleY float64
-	frameOX        int
-	frameOY        int
-	frameWidth     int
-	frameHeight    int
-	frameCount     int
-	currentFrame   float64
-	isRepeatable   bool
-	start          bool
-	callbackDone   bool
-	image          *ebiten.Image
-	player         *audio.Player
-	callback       func()
+	x, y                float64
+	scaleX, scaleY      float64
+	currentFrame        float64
+	isRepeatable        bool
+	isReverse           bool
+	nowReverseAnimation bool
+	start               bool
+	callbackDone        bool
+	images              []*ebiten.Image
+	player              *audio.Player
+	callback            func()
 }
 
-func NewAnimation(image *ebiten.Image, frameOX, frameOY, frameWidth, frameHeight, frameCount int) *Animation {
+func NewAnimation(images []*ebiten.Image) *Animation {
 	return &Animation{
-		frameOX:      frameOX,
-		frameOY:      frameOY,
-		frameWidth:   frameWidth,
-		frameHeight:  frameHeight,
-		frameCount:   frameCount,
-		image:        image,
-		isRepeatable: true,
-		scaleX:       1.0,
-		scaleY:       1.0,
+		images: images,
 	}
 }
 
@@ -49,26 +37,41 @@ func (animation *Animation) Update(speed float64) {
 	if animation.player != nil {
 		animation.player.Play()
 	}
-	if int(animation.currentFrame) >= animation.frameCount && !animation.callbackDone {
+	if animation.callback != nil && int(animation.currentFrame) >= len(animation.images) && !animation.callbackDone {
 		animation.callback()
 		animation.callbackDone = true
 	}
-	animation.currentFrame += speed
+	if animation.nowReverseAnimation {
+		animation.currentFrame -= speed
+	} else {
+		animation.currentFrame += speed
+	}
 }
 
 func (animation *Animation) Draw(screen *ebiten.Image) {
 	if !animation.start {
 		return
 	}
-	if !animation.isRepeatable && int(animation.currentFrame) >= animation.frameCount {
+	if !animation.isRepeatable && int(animation.currentFrame) >= len(animation.images) {
 		return
 	}
+	if animation.isReverse && int(animation.currentFrame) < 0 {
+		animation.currentFrame = 0
+		animation.nowReverseAnimation = false
+	}
+	if int(animation.currentFrame) >= len(animation.images) {
+		if animation.isReverse {
+			animation.nowReverseAnimation = true
+			animation.currentFrame--
+		} else {
+			animation.currentFrame = 0
+		}
+	}
+
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(animation.x, animation.y)
 	op.GeoM.Scale(animation.scaleX, animation.scaleY)
-	i := int(animation.currentFrame)
-	sx, sy := animation.frameOX+i*animation.frameWidth, animation.frameOY
-	screen.DrawImage(animation.image.SubImage(image.Rect(sx, sy, sx+animation.frameWidth, sy+animation.frameHeight)).(*ebiten.Image), op)
+	screen.DrawImage(animation.images[int(animation.currentFrame)], op)
 }
 
 func (animation *Animation) SetPosition(x, y float64) {
@@ -78,6 +81,10 @@ func (animation *Animation) SetPosition(x, y float64) {
 
 func (animation *Animation) SetRepeatable(enabled bool) {
 	animation.isRepeatable = enabled
+}
+
+func (animation *Animation) SetReverse(isReverse bool) {
+	animation.isReverse = isReverse
 }
 
 func (animation *Animation) Start() {
